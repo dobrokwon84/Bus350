@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>350번 상행 – 달래창</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap');
+
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #4fc3f7;
+      --text: #e8eaf0;
+      --sub: #8890a8;
+      --row-alt: #1f2230;
+      --green: #78e08f;
+      --red: #e74c3c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      padding: 20px 12px 40px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px 6px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      margin-bottom: 18px;
+      transition: color .15s, border-color .15s;
+    }
+    .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dir-label {
+      display: inline-block;
+      background: rgba(79,195,247,.12);
+      border: 1px solid rgba(79,195,247,.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .bus-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 14vw, 100px);
+      letter-spacing: 4px;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    header h2 {
+      font-size: clamp(13px, 3.5vw, 17px);
+      font-weight: 500;
+      color: var(--sub);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+
+    .note-calc {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--sub);
+      opacity: 0.7;
+    }
+
+    /* ── 실시간 섹션 ── */
+    .live-wrap {
+      max-width: 540px;
+      margin: 0 auto 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .live-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+
+    .live-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: #555; flex-shrink: 0; transition: background .3s;
+    }
+    .live-dot.active { background: #4caf50; box-shadow: 0 0 6px #4caf5088; animation: pulse 1.8s infinite; }
+    .live-dot.error  { background: #e74c3c; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .live-title  { font-size: 13px; font-weight: 700; color: var(--text); }
+    .live-updated{ margin-left: auto; font-size: 11px; color: var(--sub); }
+
+    .live-body { padding: 14px 16px; min-height: 80px; }
+
+    .live-panel-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .5px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+      color: var(--accent);
+    }
+
+    .cnt-badge {
+      font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 700;
+      background: rgba(79,195,247,.15); color: var(--accent);
+    }
+
+    .live-none    { font-size: 12px; color: var(--sub); padding: 8px 0; }
+    .live-loading { font-size: 12px; color: var(--sub); padding: 8px 0; }
+
+    /* ── 버스 카드 ── */
+    .bus-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px;
+      padding: 11px 13px;
+      margin-bottom: 8px;
+    }
+    .bus-card:last-child { margin-bottom: 0; }
+
+    .bus-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; flex-wrap: wrap; }
+    .bus-veh-no   { font-size: 13px; font-weight: 700; color: var(--text); }
+
+    .pos-tag {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--sub);
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 9px; flex-wrap: wrap;
+    }
+
+    .eta-rows { display: flex; flex-direction: column; gap: 5px; border-top: 1px solid var(--border); padding-top: 9px; }
+    .eta-row  { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; font-size: 12px; }
+    .eta-label { color: var(--sub); white-space: nowrap; min-width: 80px; }
+    .eta-label.is-target { color: var(--green); font-weight: 700; }
+    .eta-val { font-size: 13px; font-weight: 700; text-align: right; }
+    .eta-val.soon   { color: var(--red); }
+    .eta-val.near   { color: var(--green); }
+    .eta-val.normal { color: var(--text); }
+    .eta-val.passed { color: var(--sub); font-size: 11px; font-weight: 400; }
+    .eta-val.unknown{ color: var(--sub); font-size: 11px; font-weight: 400; }
+    .pos-only { font-size: 12px; color: var(--sub); padding: 4px 0 2px; }
+
+    /* ── 시간표 ── */
+    .tbl-wrap { max-width: 540px; margin: 0 auto; }
+
+    .tbl-card {
+      background: var(--card);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .tbl-header {
+      padding: 14px 16px 12px;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(79,195,247,.08);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .dir-arrow { font-size: 20px; line-height: 1; }
+    .dir-info h3 { font-size: 14px; font-weight: 700; color: var(--accent); }
+    .dir-info p  { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: clamp(12px,3vw,14px); }
+    thead tr { background: rgba(255,255,255,.03); }
+    thead th { padding: 9px 8px; font-size: 11px; font-weight: 700; color: var(--sub); text-align: center; border-bottom: 1px solid var(--border); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:nth-child(even) { background: var(--row-alt); }
+    tbody tr:hover { background: rgba(255,255,255,.07); }
+    tbody tr.row-past td { opacity: .28; }
+    tbody tr.row-next { background: rgba(231,76,60,.13) !important; box-shadow: inset 3px 0 0 #e74c3c; }
+    tbody tr.row-next td:last-child { color: #e74c3c !important; font-weight: 700 !important; }
+    tbody td { padding: 8px; text-align: center; vertical-align: middle; }
+
+    .num      { color: var(--sub); font-size: 10px; }
+    .t-depart { font-weight: 700; font-size: 14px; color: var(--accent); }
+    .t-pass   { font-weight: 600; font-size: 14px; color: #c39bd3; }
+    .t-dalrae { font-weight: 600; font-size: 14px; color: var(--text); }
+
+    footer {
+      text-align: center; margin-top: 28px;
+      font-size: 11px; color: var(--sub); opacity: .6; line-height: 1.7;
+    }
+
+    /* 아코디언 */
+    .past-toggle-row td {
+      padding: 7px 12px; text-align: center; cursor: pointer;
+      font-size: 11px; font-weight: 700; color: var(--sub);
+      background: rgba(255,255,255,.025); border-bottom: 1px solid var(--border);
+      letter-spacing: .3px; transition: background .15s, color .15s; user-select: none;
+    }
+    .past-toggle-row:hover td { background: rgba(255,255,255,.06); color: var(--text); }
+    .past-toggle-row td .toggle-arrow { display: inline-block; transition: transform .25s; }
+    .past-toggle-row.expanded td .toggle-arrow { transform: rotate(180deg); }
+    tbody tr.row-past.past-hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <a class="back-btn" href="index.html">‹ 방향 선택</a>
+
+  <header>
+    <div class="dir-label">🔼 상행</div>
+    <div class="bus-number">350</div>
+    <h2>달래창(송선1리) 통과시각</h2>
+    <p class="note-calc">※ 산내 출발 기준 · 감산승강장 +7분 · 달래창 +15분 · 시행 2022.02.22</p>
+  </header>
+
+  <!-- 실시간 -->
+  <div class="live-wrap">
+    <div class="live-header">
+      <span class="live-dot" id="liveDot"></span>
+      <span class="live-title">🚌 실시간 버스 위치</span>
+      <span class="live-updated" id="liveUpdated">불러오는 중…</span>
+    </div>
+    <div class="live-body">
+      <div class="live-panel-title">
+        🔼 산내 → 경주 (상행)
+        <span class="cnt-badge" id="cntUp">0</span>
+      </div>
+      <div id="bodyUp" class="live-loading">📡 수신 중…</div>
+    </div>
+  </div>
+
+  <!-- 시간표 -->
+  <div class="tbl-wrap">
+    <div class="tbl-card">
+      <div class="tbl-header">
+        <span class="dir-arrow">🔼</span>
+        <div class="dir-info">
+          <h3>산내 → 경주</h3>
+          <p>산내 출발 → 감산승강장 +7분 → 달래창 +15분</p>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>산내 출발</th>
+            <th>감산승강장 통과</th>
+            <th>달래창 통과</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="t-depart">오전 6:50</td><td class="t-pass">오전 6:57</td><td class="t-dalrae">오전 7:05</td></tr>
+          <tr><td class="num">2</td><td class="t-depart">오전 7:10</td><td class="t-pass">오전 7:17</td><td class="t-dalrae">오전 7:25</td></tr>
+          <tr><td class="num">3</td><td class="t-depart">오전 8:00</td><td class="t-pass">오전 8:07</td><td class="t-dalrae">오전 8:15</td></tr>
+          <tr><td class="num">4</td><td class="t-depart">오전 8:30</td><td class="t-pass">오전 8:37</td><td class="t-dalrae">오전 8:45</td></tr>
+          <tr><td class="num">5</td><td class="t-depart">오전 9:10</td><td class="t-pass">오전 9:17</td><td class="t-dalrae">오전 9:25</td></tr>
+          <tr><td class="num">6</td><td class="t-depart">오전 9:50</td><td class="t-pass">오전 9:57</td><td class="t-dalrae">오전 10:05</td></tr>
+          <tr><td class="num">7</td><td class="t-depart">오전 10:25</td><td class="t-pass">오전 10:32</td><td class="t-dalrae">오전 10:40</td></tr>
+          <tr><td class="num">8</td><td class="t-depart">오전 10:50</td><td class="t-pass">오전 10:57</td><td class="t-dalrae">오전 11:05</td></tr>
+          <tr><td class="num">9</td><td class="t-depart">오전 11:30</td><td class="t-pass">오전 11:37</td><td class="t-dalrae">오전 11:45</td></tr>
+          <tr><td class="num">10</td><td class="t-depart">오후 12:10</td><td class="t-pass">오후 12:17</td><td class="t-dalrae">오후 12:25</td></tr>
+          <tr><td class="num">11</td><td class="t-depart">오후 1:00</td><td class="t-pass">오후 1:07</td><td class="t-dalrae">오후 1:15</td></tr>
+          <tr><td class="num">12</td><td class="t-depart">오후 1:50</td><td class="t-pass">오후 1:57</td><td class="t-dalrae">오후 2:05</td></tr>
+          <tr><td class="num">13</td><td class="t-depart">오후 2:10</td><td class="t-pass">오후 2:17</td><td class="t-dalrae">오후 2:25</td></tr>
+          <tr><td class="num">14</td><td class="t-depart">오후 2:50</td><td class="t-pass">오후 2:57</td><td class="t-dalrae">오후 3:05</td></tr>
+          <tr><td class="num">15</td><td class="t-depart">오후 3:10</td><td class="t-pass">오후 3:17</td><td class="t-dalrae">오후 3:25</td></tr>
+          <tr><td class="num">16</td><td class="t-depart">오후 3:30</td><td class="t-pass">오후 3:37</td><td class="t-dalrae">오후 3:45</td></tr>
+          <tr><td class="num">17</td><td class="t-depart">오후 4:10</td><td class="t-pass">오후 4:17</td><td class="t-dalrae">오후 4:25</td></tr>
+          <tr><td class="num">18</td><td class="t-depart">오후 4:50</td><td class="t-pass">오후 4:57</td><td class="t-dalrae">오후 5:05</td></tr>
+          <tr><td class="num">19</td><td class="t-depart">오후 5:30</td><td class="t-pass">오후 5:37</td><td class="t-dalrae">오후 5:45</td></tr>
+          <tr><td class="num">20</td><td class="t-depart">오후 6:20</td><td class="t-pass">오후 6:27</td><td class="t-dalrae">오후 6:35</td></tr>
+          <tr><td class="num">21</td><td class="t-depart">오후 6:40</td><td class="t-pass">오후 6:47</td><td class="t-dalrae">오후 6:55</td></tr>
+          <tr><td class="num">22</td><td class="t-depart">오후 7:00</td><td class="t-pass">오후 7:07</td><td class="t-dalrae">오후 7:15</td></tr>
+          <tr><td class="num">23</td><td class="t-depart">오후 7:20</td><td class="t-pass">오후 7:27</td><td class="t-dalrae">오후 7:35</td></tr>
+          <tr><td class="num">24</td><td class="t-depart">오후 7:40</td><td class="t-pass">오후 7:47</td><td class="t-dalrae">오후 7:55</td></tr>
+          <tr><td class="num">25</td><td class="t-depart">오후 8:10</td><td class="t-pass">오후 8:17</td><td class="t-dalrae">오후 8:25</td></tr>
+          <tr><td class="num">26</td><td class="t-depart">오후 8:40</td><td class="t-pass">오후 8:47</td><td class="t-dalrae">오후 8:55</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    350번 경주시내버스 · 시행 2022.02.22<br>
+    소요시간 출처: 네이버지도 실측 · 문의 054-779-6417
+  </footer>
+
+  <script>
+    const BASE  = 'https://livebus.gyeongju.go.kr';
+    const PROXY = 'https://corsproxy.io/?url=';
+    const px = url => PROXY + encodeURIComponent(url);
+
+    const KW_DALRAE = ['달래창', '송선1리달래창'];
+    const KW_GAMSAN = ['감산승강장'];
+
+    function matchName(name, kws) { return kws.some(k => (name || '').includes(k)); }
+
+    function getDir(angle) {
+      const a = parseFloat(angle);
+      if (isNaN(a)) return null;
+      return (a >= 150 && a < 330) ? 'down' : 'up';
+    }
+
+    async function fetchTO(url, opts = {}, ms = 7000) {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), ms);
+      try { const r = await fetch(url, { ...opts, signal: ctrl.signal }); clearTimeout(tid); return r; }
+      catch (e) { clearTimeout(tid); throw e; }
+    }
+
+    const STOPS_UP = [
+      { name: '산내정류소',                 lat: 35.762,  lon: 129.047 },
+      { name: '본내일입구',                 lat: 35.765,  lon: 129.051 },
+      { name: '내일1리',                    lat: 35.766,  lon: 129.053 },
+      { name: '동방주유소',                 lat: 35.767,  lon: 129.055 },
+      { name: '해평하.널다리',              lat: 35.770,  lon: 129.060 },
+      { name: '해평상.윗널다리',            lat: 35.773,  lon: 129.063 },
+      { name: '감산승강장',                 lat: 35.777,  lon: 129.068 },
+      { name: '감산',                       lat: 35.779,  lon: 129.070 },
+      { name: '당고개',                     lat: 35.787,  lon: 129.074 },
+      { name: '어머리',                     lat: 35.793,  lon: 129.078 },
+      { name: '우중골.단석산입구',          lat: 35.800,  lon: 129.082 },
+      { name: '송선2리절골',                lat: 35.806,  lon: 129.086 },
+      { name: '신경주병원',                 lat: 35.810,  lon: 129.089 },
+      { name: '송선주유소',                 lat: 35.815,  lon: 129.090 },
+      { name: '송선저수지',                 lat: 35.819,  lon: 129.091 },
+      { name: '송선1리달래창',              lat: 35.822,  lon: 129.094 },
+      { name: '송선1리선동',                lat: 35.825,  lon: 129.098 },
+      { name: '건천IC',                     lat: 35.829,  lon: 129.103 },
+      { name: '햇님슈퍼',                   lat: 35.829,  lon: 129.105 },
+      { name: '천포초등학교',               lat: 35.829,  lon: 129.107 },
+      { name: '무산고등학교',               lat: 35.830,  lon: 129.109 },
+      { name: '회춘당한약방',               lat: 35.831,  lon: 129.111 },
+      { name: '건천시장',                   lat: 35.832,  lon: 129.114 },
+      { name: '대곡입구',                   lat: 35.833,  lon: 129.119 },
+      { name: '조전',                       lat: 35.834,  lon: 129.124 },
+      { name: '열녀각',                     lat: 35.835,  lon: 129.129 },
+      { name: '금척',                       lat: 35.836,  lon: 129.134 },
+      { name: '오방골',                     lat: 35.837,  lon: 129.139 },
+      { name: '모량역',                     lat: 35.838,  lon: 129.144 },
+      { name: '모량초등학교',               lat: 35.839,  lon: 129.151 },
+      { name: '광명',                       lat: 35.840,  lon: 129.160 },
+      { name: '남강주유소',                 lat: 35.840,  lon: 129.163 },
+      { name: '와산마을',                   lat: 35.840,  lon: 129.169 },
+      { name: '신경주대학교',               lat: 35.840,  lon: 129.179 },
+      { name: '외외마을입구',               lat: 35.840,  lon: 129.182 },
+      { name: '베스트원현대서비스',          lat: 35.839,  lon: 129.186 },
+      { name: '문화중고등학교입구',          lat: 35.839,  lon: 129.189 },
+      { name: '국민건강보험.정보고등학교',   lat: 35.839,  lon: 129.192 },
+      { name: '송화도서관',                 lat: 35.839,  lon: 129.195 },
+      { name: '신라고.신경주대학교 충효캠', lat: 35.839,  lon: 129.199 },
+      { name: '경주초등학교건너',            lat: 35.839,  lon: 129.204 },
+      { name: '경주여중건너편',             lat: 35.839,  lon: 129.207 },
+      { name: '고속버스.시외버스터미널',     lat: 35.838,  lon: 129.210 },
+      { name: '서라벌사거리.황리단길',       lat: 35.839,  lon: 129.211 },
+      { name: '중앙시장',                   lat: 35.840,  lon: 129.210 },
+      { name: 'IM뱅크건너',                 lat: 35.840,  lon: 129.209 },
+      { name: '신한은행사거리',              lat: 35.840,  lon: 129.208 },
+      { name: '경주우체국',                 lat: 35.841,  lon: 129.208 },
+      { name: '성동시장 동편',               lat: 35.842,  lon: 129.210 },
+      { name: '세무서.큰마디병원',           lat: 35.843,  lon: 129.212 },
+    ];
+
+    function nearestIdx(lat, lon, table) {
+      let minD = Infinity, idx = 0;
+      table.forEach((s, i) => {
+        const d = (s.lat - lat) ** 2 + ((s.lon - lon) * 1.25) ** 2;
+        if (d < minD) { minD = d; idx = i; }
+      });
+      return idx;
+    }
+
+    function isPassedByGps(lat, lon, kws) {
+      if (!lat || !lon) return false;
+      const busIdx = nearestIdx(lat, lon, STOPS_UP);
+      const targetIdxs = STOPS_UP.map((s, i) => kws.some(k => s.name.includes(k)) ? i : -1).filter(i => i >= 0);
+      if (!targetIdxs.length) return false;
+      return busIdx > Math.min(...targetIdxs);
+    }
+
+    function findVehicleAnchor(detail, vehicleNo, vehicleId) {
+      if (!detail || !detail.length) return -1;
+      const s = detail.find(d =>
+        (vehicleId && d.vehicle_id === vehicleId) ||
+        (vehicleNo && d.vehicle_no === vehicleNo)
+      );
+      return s ? s.route_station_sort : -1;
+    }
+
+    function detailPos(detail, vehicleNo, vehicleId) {
+      if (!detail || !detail.length) return '';
+      const anchorSort = findVehicleAnchor(detail, vehicleNo, vehicleId);
+      if (anchorSort > 0) {
+        const anchor  = detail.find(d => d.route_station_sort === anchorSort);
+        const from    = anchor ? (anchor.station_kr || '') : '';
+        const nextEta = detail.find(d =>
+          d.route_station_sort > anchorSort &&
+          (d.arrival_time_text || '').trim() !== '도착정보없음' &&
+          (d.arrival_time_text || '').trim() !== ''
+        );
+        if (nextEta) return `${from} → ${nextEta.station_kr}`;
+        if (from)    return from;
+      }
+      const soonIdx = detail.findIndex(s => (s.arrival_time_text || '').trim() === '잠시후도착');
+      if (soonIdx > 0) return `${detail[soonIdx-1].station_kr} → ${detail[soonIdx].station_kr}`;
+      if (soonIdx === 0) return detail[0].station_kr || '';
+      const etaIdx = detail.findIndex(s =>
+        (s.arrival_time_text || '').trim() !== '도착정보없음' && (s.arrival_time_text || '').trim() !== ''
+      );
+      if (etaIdx > 0) return `${detail[etaIdx-1].station_kr} → ${detail[etaIdx].station_kr}`;
+      return '';
+    }
+
+    async function fetchBusList() {
+      const API = `${BASE}:7123/bus/getLiveBusList.do`;
+      for (const fn of [() => fetchTO(API, { method: 'POST' }), () => fetchTO(px(API))]) {
+        try {
+          const res = await fn();
+          if (!res.ok) continue;
+          const data = await res.json();
+          const all = data.location || data.busList || data.list || [];
+          return all.filter(b => String(b.route_no || '').startsWith('350'));
+        } catch (_) {}
+      }
+      throw new Error('버스 목록 조회 실패');
+    }
+
+    async function fetchDetail(routeId, vehicleId) {
+      if (!routeId) return null;
+      const qs  = vehicleId ? `routeId=${routeId}&vehicleId=${vehicleId}` : `routeId=${routeId}`;
+      const url = `${BASE}:7123/bus/getRouteDetailInfo.do?${qs}`;
+      for (const u of [url, px(url)]) {
+        try {
+          const res = await fetchTO(u, { method: 'POST' }, 8000);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (Array.isArray(data.detail) && data.detail.length) return data.detail;
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    function getEta(detail, kws, anchorSort) {
+      if (!detail) return null;
+      const candidates = detail.filter(s => matchName(s.station_kr, kws));
+      if (!candidates.length) return null;
+      if (anchorSort > 0) {
+        const pool = candidates.filter(s => s.route_station_sort > anchorSort);
+        if (pool.length) {
+          const txt = (pool[0].arrival_time_text || '').trim();
+          return txt === '도착정보없음' ? null : txt;
+        }
+        return '통과완료';
+      }
+      const txt = (candidates[0].arrival_time_text || '').trim();
+      return txt === '도착정보없음' ? null : txt;
+    }
+
+    function etaClass(txt) {
+      if (!txt) return 'unknown';
+      if (txt === '통과완료') return 'passed';
+      if (txt === '잠시후도착') return 'soon';
+      const m = txt.match(/(\d+)분/);
+      if (m) { const min = parseInt(m[1]); return min < 3 ? 'soon' : min < 10 ? 'near' : 'normal'; }
+      return 'normal';
+    }
+
+    function renderCard(bus) {
+      const detail = bus.detail;
+      const anchorSort = findVehicleAnchor(detail, bus.vehicleNo, bus.vehicleId);
+
+      let gamsanEta = getEta(detail, KW_GAMSAN,  anchorSort);
+      let dalraeEta = getEta(detail, KW_DALRAE,  anchorSort);
+
+      if (bus.lat && bus.lon) {
+        if (isPassedByGps(bus.lat, bus.lon, KW_GAMSAN))  gamsanEta = '통과완료';
+        if (isPassedByGps(bus.lat, bus.lon, KW_DALRAE))  dalraeEta = '통과완료';
+      }
+
+      const pos    = bus.detailLoaded ? detailPos(detail, bus.vehicleNo, bus.vehicleId) : '';
+      const posStr = pos ? `📍 ${pos}` : '';
+
+      function etaRow(label, eta, isTarget) {
+        const starIcon = isTarget ? '★' : '⬡';
+        const labelCls = isTarget ? 'eta-label is-target' : 'eta-label';
+        if (eta === '통과완료') {
+          return `<div class="eta-row"><span class="${labelCls}">${starIcon} ${label}</span><span class="eta-val passed">✓ 통과완료</span></div>`;
+        } else if (eta) {
+          return `<div class="eta-row"><span class="${labelCls}">${starIcon} ${label}</span><span class="eta-val ${etaClass(eta)}">${eta}</span></div>`;
+        } else {
+          const fallback = posStr
+            ? `<span class="eta-val unknown" style="font-size:11px">${posStr}</span>`
+            : `<span class="eta-val unknown">도착정보없음</span>`;
+          return `<div class="eta-row"><span class="${labelCls}">${starIcon} ${label}</span>${fallback}</div>`;
+        }
+      }
+
+      const etaSection = bus.detailLoaded
+        ? `<div class="eta-rows">${etaRow('감산승강장', gamsanEta, false)}${etaRow('달래창', dalraeEta, true)}</div>`
+        : `<div class="pos-only">📡 정보 조회 중…</div>`;
+
+      const posBadge = posStr ? `<span class="pos-tag">${posStr}</span>` : '';
+
+      return `<div class="bus-card">
+        <div class="bus-card-top"><span class="bus-veh-no">🚌 ${bus.name}</span>${posBadge}</div>
+        ${etaSection}
+      </div>`;
+    }
+
+    let busCache = {};
+
+    async function refresh() {
+      const dot     = document.getElementById('liveDot');
+      const updated = document.getElementById('liveUpdated');
+      try {
+        const rawList = await fetchBusList();
+        const now = new Date();
+        dot.className       = 'live-dot active';
+        updated.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 갱신`;
+
+        const buses = rawList.map(raw => {
+          const vid  = String(raw.vehicle_id || raw.device_id || raw.vehicle_no || '');
+          const prev = busCache[vid] || {};
+          return {
+            vehicleId:    vid,
+            vehicleNo:    String(raw.vehicle_no || ''),
+            name:         raw.device_name || raw.vehicle_no || vid,
+            routeId:      String(raw.route_id || ''),
+            dir:          getDir(raw.angle || 0),
+            lat:          parseFloat(raw.latitude  || 0),
+            lon:          parseFloat(raw.longitude || 0),
+            detail:       prev.detail       ?? null,
+            detailLoaded: prev.detailLoaded ?? false,
+          };
+        }).filter(b => b.dir === 'up');  // 상행만
+
+        buses.forEach(b => { busCache[b.vehicleId] = { ...busCache[b.vehicleId], ...b }; });
+
+        const bodyUp = document.getElementById('bodyUp');
+        const cntUp  = document.getElementById('cntUp');
+        cntUp.textContent = buses.length;
+        bodyUp.innerHTML  = buses.length ? buses.map(renderCard).join('') : '<div class="live-none">현재 운행 중인 버스 없음</div>';
+
+        await Promise.all(buses.map(async b => {
+          try {
+            const detail = await fetchDetail(b.routeId, b.vehicleId);
+            busCache[b.vehicleId] = { ...busCache[b.vehicleId], detail: detail || [], detailLoaded: true };
+          } catch (_) {
+            busCache[b.vehicleId] = { ...busCache[b.vehicleId], detail: [], detailLoaded: true };
+          }
+        }));
+
+        const updated2 = buses.map(b => busCache[b.vehicleId] || b);
+        cntUp.textContent = updated2.length;
+        bodyUp.innerHTML  = updated2.length ? updated2.map(renderCard).join('') : '<div class="live-none">현재 운행 중인 버스 없음</div>';
+
+      } catch (e) {
+        console.error(e);
+        dot.className = 'live-dot error';
+        updated.textContent = '연결 실패';
+        const errHtml = `<div class="live-none" style="line-height:1.9">
+          ⚠️ 실시간 데이터 수신 실패<br>
+          <span style="font-size:10px;color:var(--sub)">
+            💡 <b style="color:var(--text)">file://로 열면 CORS 정책으로 외부 API 차단됩니다.</b><br>
+            ① 폴더에서 <code style="background:#222;padding:1px 5px;border-radius:3px">python -m http.server 8080</code> 실행<br>
+            &nbsp;&nbsp;&nbsp;<a href="http://localhost:8080" target="_blank" style="color:#4fc3f7">http://localhost:8080</a>에서 열기<br>
+            ② VS Code Live Server 확장 사용
+          </span>
+        </div>`;
+        document.getElementById('bodyUp').innerHTML = errHtml;
+        document.getElementById('cntUp').textContent = '–';
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 30000);
+
+    // 시간표 하이라이트 + 아코디언
+    function parseKoreanTime(text) {
+      const m = text.trim().match(/(오전|오후)\s*(\d+):(\d+)/);
+      if (!m) return null;
+      let h = parseInt(m[2]);
+      const min = parseInt(m[3]);
+      if (m[1] === '오후' && h !== 12) h += 12;
+      if (m[1] === '오전' && h === 12) h = 0;
+      return h * 60 + min;
+    }
+
+    function highlightTimetable() {
+      const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+      document.querySelectorAll('.tbl-card').forEach(card => {
+        const tbody = card.querySelector('tbody');
+        tbody.querySelectorAll('.past-toggle-row').forEach(r => r.remove());
+        const rows = [...tbody.querySelectorAll('tr:not(.past-toggle-row)')];
+        let pastRows = [], nextFound = false;
+        rows.forEach(row => {
+          const tds = row.querySelectorAll('td');
+          if (!tds.length) return;
+          const t = parseKoreanTime(tds[tds.length - 1].textContent);
+          if (t === null) return;
+          row.classList.remove('row-past', 'row-next');
+          if (t < nowMin) { row.classList.add('row-past'); pastRows.push(row); }
+          else if (!nextFound) { row.classList.add('row-next'); nextFound = true; }
+        });
+        if (!pastRows.length) return;
+        const isExpanded = card.dataset.pastExpanded === 'true';
+        pastRows.forEach(r => isExpanded ? r.classList.remove('past-hidden') : r.classList.add('past-hidden'));
+        const toggleTr = document.createElement('tr');
+        toggleTr.className = 'past-toggle-row' + (isExpanded ? ' expanded' : '');
+        const colCount = rows[0] ? rows[0].querySelectorAll('td').length : 4;
+        toggleTr.innerHTML = `<td colspan="${colCount}"><span class="toggle-arrow">▼</span>&nbsp; 지난 편 ${pastRows.length}개 ${isExpanded ? '접기' : '펼치기'}</td>`;
+        toggleTr.addEventListener('click', () => {
+          card.dataset.pastExpanded = card.dataset.pastExpanded === 'true' ? 'false' : 'true';
+          highlightTimetable();
+        });
+        tbody.insertBefore(toggleTr, rows[0]);
+      });
+    }
+
+    highlightTimetable();
+    setInterval(highlightTimetable, 60000);
+  </script>
+</body>
+</html>

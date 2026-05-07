@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>350번 버스 – 달래창</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap');
+
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --border: #2a2d3a;
+      --down-accent: #f5a623;
+      --up-accent: #4fc3f7;
+      --text: #e8eaf0;
+      --sub: #8890a8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      gap: 0;
+    }
+
+    /* 배경 장식 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 50%, rgba(245,166,35,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 50%, rgba(79,195,247,.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 헤더 */
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .bus-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(80px, 22vw, 140px);
+      letter-spacing: 6px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--down-accent) 30%, var(--up-accent) 70%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(13px, 3.5vw, 16px);
+      font-weight: 500;
+      color: var(--sub);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+
+    .route-badge {
+      display: inline-block;
+      margin-top: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    /* 선택 버튼 */
+    .dir-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .dir-btn {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      text-decoration: none;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s, border-color .18s, background .18s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dir-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .18s;
+    }
+
+    .dir-btn.down::before {
+      background: linear-gradient(135deg, rgba(245,166,35,.10) 0%, transparent 60%);
+    }
+    .dir-btn.up::before {
+      background: linear-gradient(135deg, rgba(79,195,247,.10) 0%, transparent 60%);
+    }
+
+    .dir-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    }
+    .dir-btn:hover::before { opacity: 1; }
+    .dir-btn.down:hover { border-color: rgba(245,166,35,.5); }
+    .dir-btn.up:hover   { border-color: rgba(79,195,247,.5); }
+
+    .dir-btn:active { transform: translateY(0); }
+
+    .btn-arrow {
+      font-size: 32px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .btn-body {
+      flex: 1;
+    }
+
+    .btn-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .dir-btn.down .btn-title { color: var(--down-accent); }
+    .dir-btn.up   .btn-title { color: var(--up-accent); }
+
+    .btn-route {
+      font-size: 12px;
+      color: var(--sub);
+      margin-top: 4px;
+    }
+
+    .btn-info {
+      font-size: 11px;
+      color: var(--sub);
+      margin-top: 5px;
+      opacity: .8;
+    }
+
+    .btn-chevron {
+      font-size: 18px;
+      color: var(--sub);
+      flex-shrink: 0;
+      opacity: .5;
+      transition: opacity .18s, transform .18s;
+    }
+
+    .dir-btn:hover .btn-chevron {
+      opacity: 1;
+      transform: translateX(4px);
+    }
+
+    /* 구분선 */
+    .divider {
+      text-align: center;
+      color: var(--sub);
+      font-size: 11px;
+      opacity: .4;
+      margin: 4px 0;
+      letter-spacing: 2px;
+    }
+
+    footer {
+      margin-top: 36px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--sub);
+      opacity: .5;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="bus-number">350</div>
+      <p class="hero-sub">달래창(송선1리) 버스 통과시각</p>
+      <div class="route-badge">산내 ↔ 건천 ↔ 경주 고속터미널 ↔ 성동시장</div>
+    </div>
+
+    <div class="dir-buttons">
+      <a class="dir-btn down" href="down.html">
+        <span class="btn-arrow">🔽</span>
+        <div class="btn-body">
+          <div class="btn-title">경주 → 산내 (하행)</div>
+          <div class="btn-route">성동시장 출발 → 건천시장 → 달래창</div>
+          <div class="btn-info">건천시장 +27분 · 달래창 +35분</div>
+        </div>
+        <span class="btn-chevron">›</span>
+      </a>
+
+      <div class="divider">── 방향 선택 ──</div>
+
+      <a class="dir-btn up" href="up.html">
+        <span class="btn-arrow">🔼</span>
+        <div class="btn-body">
+          <div class="btn-title">산내 → 경주 (상행)</div>
+          <div class="btn-route">산내 출발 → 감산승강장 → 달래창</div>
+          <div class="btn-info">감산승강장 +7분 · 달래창 +15분</div>
+        </div>
+        <span class="btn-chevron">›</span>
+      </a>
+    </div>
+
+    <footer>
+      350번 경주시내버스 · 시행 2022.02.22<br>
+      문의 054-779-6417
+    </footer>
+  </div>
+</body>
+</html>
