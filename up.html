@@ -430,6 +430,30 @@
       color: var(--text);
     }
 
+    .t-live {
+      color: var(--green) !important;
+      font-weight: 800 !important;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+
+    tbody tr.row-next td.t-live {
+      color: var(--green) !important;
+    }
+
+    .t-live-passed {
+      font-weight: 700 !important;
+    }
+
+    .passed-note {
+      display: block;
+      margin-top: 2px;
+      color: var(--sub);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
     footer {
       text-align: center;
       margin-top: 28px;
@@ -867,6 +891,103 @@
       return 'normal';
     }
 
+    function etaToMinutes(txt) {
+      if (!txt || txt === '지나갔어요') return null;
+      const m = String(txt).match(/(\d+)\s*분/);
+      if (m) return parseInt(m[1], 10);
+      return String(txt).includes('잠시후') || String(txt).includes('곧') ? 0 : null;
+    }
+
+    function formatMinutesAsKoreanTime(totalMin) {
+      const minutesInDay = 24 * 60;
+      const t = ((Math.round(totalMin) % minutesInDay) + minutesInDay) % minutesInDay;
+      const h = Math.floor(t / 60);
+      const m = t % 60;
+      return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(m).padStart(2, '0')}`;
+    }
+
+    function ensureTimetableDefaults() {
+      document.querySelectorAll('.t-pass, .t-dalrae').forEach(cell => {
+        if (!cell.dataset.planText) cell.dataset.planText = cell.textContent.trim();
+        if (!cell.dataset.planMin) {
+          const planMin = parseKoreanTime(cell.dataset.planText);
+          if (planMin !== null) cell.dataset.planMin = String(planMin);
+        }
+      });
+    }
+
+    function resetLiveTimetable() {
+      ensureTimetableDefaults();
+      document.querySelectorAll('.t-pass, .t-dalrae').forEach(cell => {
+        cell.textContent = cell.dataset.planText || cell.textContent;
+        cell.classList.remove('t-live');
+        cell.classList.remove('t-live-passed');
+        delete cell.dataset.livePassed;
+        cell.removeAttribute('title');
+      });
+    }
+
+    function markPassedTimetableCell(selector, nowMin) {
+      let best = null;
+      document.querySelectorAll(selector).forEach(cell => {
+        const planMin = parseInt(cell.dataset.planMin || '', 10);
+        if (Number.isNaN(planMin)) return;
+        const delta = Math.abs(planMin - nowMin);
+        if (delta <= 45 && (!best || delta < best.delta)) best = { cell, delta };
+      });
+      if (!best) return;
+      best.cell.innerHTML = `${best.cell.dataset.planText || best.cell.textContent}<span class="passed-note">지나감</span>`;
+      best.cell.classList.add('t-live-passed');
+      best.cell.dataset.livePassed = 'true';
+      best.cell.title = '실시간 기준: 이미 지나감';
+    }
+
+    function applyLiveTimetableUpdates(updates) {
+      resetLiveTimetable();
+      const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+      const usedCells = new Set();
+      updates.forEach(({ selector, eta }) => {
+        if (eta === '지나갔어요') {
+          markPassedTimetableCell(selector, nowMin);
+          return;
+        }
+        const etaMin = etaToMinutes(eta);
+        if (etaMin === null) return;
+        const liveMin = nowMin + etaMin;
+        let best = null;
+        document.querySelectorAll(selector).forEach(cell => {
+          if (usedCells.has(cell)) return;
+          const planMin = parseInt(cell.dataset.planMin || '', 10);
+          if (Number.isNaN(planMin)) return;
+          const delta = Math.abs(planMin - liveMin);
+          if (delta <= 45 && (!best || delta < best.delta)) best = { cell, delta };
+        });
+        if (!best) return;
+        usedCells.add(best.cell);
+        best.cell.textContent = formatMinutesAsKoreanTime(liveMin);
+        best.cell.classList.add('t-live');
+        best.cell.title = `실시간 기준: ${eta}`;
+      });
+    }
+
+    function updateTimetableFromBuses(buses) {
+      const updates = [];
+      buses.forEach(bus => {
+        const detail = bus.detail;
+        const anchorSort = findVehicleAnchor(detail, bus.vehicleNo, bus.vehicleId);
+        let gamsanEta = getEta(detail, KW_GAMSAN, anchorSort);
+        let dalraeEta = getEta(detail, KW_DALRAE, anchorSort);
+        if (bus.lat && bus.lon) {
+          if (isPassedByGps(bus.lat, bus.lon, KW_GAMSAN)) gamsanEta = '지나갔어요';
+          if (isPassedByGps(bus.lat, bus.lon, KW_DALRAE)) dalraeEta = '지나갔어요';
+        }
+        updates.push({ selector: '.t-pass', eta: gamsanEta });
+        updates.push({ selector: '.t-dalrae', eta: dalraeEta });
+      });
+      applyLiveTimetableUpdates(updates);
+      highlightTimetable();
+    }
+
     function renderCard(bus) {
       const detail = bus.detail;
       const anchorSort = findVehicleAnchor(detail, bus.vehicleNo, bus.vehicleId);
@@ -959,9 +1080,12 @@
         const updated2 = buses.map(b => busCache[b.vehicleId] || b);
         cntUp.textContent = updated2.length;
         bodyUp.innerHTML = updated2.length ? updated2.map(renderCard).join('') : '<div class="live-none">현재 운행 중인 버스 없음</div>';
+        updateTimetableFromBuses(updated2);
 
       } catch (e) {
         console.error(e);
+        resetLiveTimetable();
+        highlightTimetable();
         dot.className = 'live-dot error';
         updated.textContent = '연결 실패';
         const errHtml = `<div class="live-none" style="line-height:1.9">
@@ -1003,9 +1127,12 @@
           const tds = row.querySelectorAll('td');
           if (!tds.length) return;
           const t = parseKoreanTime(tds[tds.length - 1].textContent);
-          if (t === null) return;
           row.classList.remove('row-past', 'row-next');
-          if (t < nowMin) { row.classList.add('row-past'); pastRows.push(row); }
+          if (tds[tds.length - 1].dataset.livePassed === 'true') {
+            row.classList.add('row-past');
+            pastRows.push(row);
+          } else if (t === null) return;
+          else if (t < nowMin) { row.classList.add('row-past'); pastRows.push(row); }
           else if (!nextFound) { row.classList.add('row-next'); nextFound = true; }
         });
         if (!pastRows.length) return;
