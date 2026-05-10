@@ -431,15 +431,10 @@
     }
 
     .t-live {
-      color: var(--green) !important;
       font-weight: 800 !important;
       text-decoration: underline;
       text-decoration-thickness: 2px;
       text-underline-offset: 3px;
-    }
-
-    tbody tr.row-next td.t-live {
-      color: var(--green) !important;
     }
 
     .t-live-passed {
@@ -806,9 +801,11 @@
 
     function findVehicleAnchor(detail, vehicleNo, vehicleId) {
       if (!detail || !detail.length) return -1;
+      const vid = vehicleId ? String(vehicleId) : '';
+      const vno = vehicleNo ? String(vehicleNo) : '';
       const s = detail.find(d =>
-        (vehicleId && d.vehicle_id === vehicleId) ||
-        (vehicleNo && d.vehicle_no === vehicleNo)
+        (vid && String(d.vehicle_id || '') === vid) ||
+        (vno && String(d.vehicle_no || '') === vno)
       );
       return s ? s.route_station_sort : -1;
     }
@@ -827,13 +824,6 @@
         if (nextEta) return `${from} → ${nextEta.station_kr}`;
         if (from) return from;
       }
-      const soonIdx = detail.findIndex(s => (s.arrival_time_text || '').trim() === '잠시후도착');
-      if (soonIdx > 0) return `${detail[soonIdx - 1].station_kr} → ${detail[soonIdx].station_kr}`;
-      if (soonIdx === 0) return detail[0].station_kr || '';
-      const etaIdx = detail.findIndex(s =>
-        (s.arrival_time_text || '').trim() !== '도착정보없음' && (s.arrival_time_text || '').trim() !== ''
-      );
-      if (etaIdx > 0) return `${detail[etaIdx - 1].station_kr} → ${detail[etaIdx].station_kr}`;
       return '';
     }
 
@@ -870,6 +860,7 @@
       if (!detail) return null;
       const candidates = detail.filter(s => matchName(s.station_kr, kws));
       if (!candidates.length) return null;
+      if (anchorSort <= 0) return null;
       if (anchorSort > 0) {
         const pool = candidates.filter(s => s.route_station_sort > anchorSort);
         if (pool.length) {
@@ -878,8 +869,7 @@
         }
         return '지나갔어요';
       }
-      const txt = (candidates[0].arrival_time_text || '').trim();
-      return txt === '도착정보없음' ? null : txt;
+      return null;
     }
 
     function etaClass(txt) {
