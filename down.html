@@ -205,12 +205,23 @@
 
     /* ── 버스 카드 ── */
     .bus-card {
+      display: block;
       background: var(--bg);
       border: 1px solid var(--border);
       border-left: 3px solid var(--accent);
       border-radius: 10px;
       padding: 11px 13px;
       margin-bottom: 8px;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color .15s ease, transform .15s ease, background .15s ease;
+    }
+
+    .bus-card:hover {
+      border-color: rgba(245, 166, 35, .55);
+      background: rgba(245, 166, 35, .05);
+      transform: translateY(-1px);
     }
 
     .bus-card:last-child {
@@ -901,10 +912,14 @@
 
       const posBadge = posStr ? `<span class="pos-tag">${posStr}</span>` : '';
 
-      return `<div class="bus-card">
+      const mapUrl = bus.vehicleId && bus.routeId
+        ? `${BASE}?b${encodeURIComponent(bus.vehicleId)}-${encodeURIComponent(bus.routeId)}`
+        : BASE;
+
+      return `<a class="bus-card" href="${mapUrl}" target="_blank" rel="noopener noreferrer" title="LIVE BUS 지도에서 ${bus.name} 보기">
         <div class="bus-card-top"><span class="bus-veh-no">🚌 ${bus.name}</span>${posBadge}</div>
         ${etaSection}
-      </div>`;
+      </a>`;
     }
 
     let busCache = {};
